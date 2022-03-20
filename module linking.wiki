@@ -1,0 +1,3 @@
+= Module Linking =
+
+[[https://github.com/bytecodealliance/wasmtime/issues/3941|wasmtime migre vers les components]]

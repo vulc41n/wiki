@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>component model</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<div id="webassembly - component model"><h1 id="webassembly - component model" class="header"><a href="#webassembly - component model">webassembly - component model</a></h1></div>
+
+<div id="webassembly - component model-ressources"><h2 id="ressources" class="header"><a href="#webassembly - component model-ressources">ressources</a></h2></div>
+
+<p>
+<a href="https://github.com/WebAssembly/component-model/blob/main/design/mvp/Explainer.md">explainer</a>
+</p>
+
+<p>
+<a href="https://github.com/WebAssembly/component-model/blob/main/design/mvp/Binary.md">format binaire</a>
+</p>
+
+<p>
+<a href="https://github.com/WebAssembly/component-model/blob/main/design/mvp/FutureFeatures.md">fonctionnalites futures</a>
+</p>
+
+<p>
+<a href="https://radu-matei.com/blog/intro-wasm-components/">article de radu</a>
+</p>
+
+<div id="webassembly - component model-exemple"><h2 id="exemple" class="header"><a href="#webassembly - component model-exemple">exemple</a></h2></div>
+<pre>
+(component
+  (module $A
+    (func (export "one") (result i32) (i32.const 1))
+    (func (export "two") (result i32) (i32.const 2))
+    (func (export "three") (result i32) (i32.const 3))
+  )
+  (module $B
+    (func (import "a" "one") (result i32))
+  )
+  (instance $a (instantiate (module $A)))
+  (instance $b1 (instantiate (module $B)
+    (with "a" (instance $a))            ;; no renaming
+  ))
+  (alias export $a "two" (func $a_two))
+  (instance $b2 (instantiate (module $B)
+    (with "a" (instance
+      (export "one" (func $a_two))      ;; renaming, using explicit alias
+    ))
+  ))
+  (instance $b3 (instantiate (module $B)
+    (with "a" (instance
+      (export "one" (func $a "three"))  ;; renaming, using inline alias sugar
+    ))
+  ))
+)
+</pre>
+
+<div id="webassembly - component model-notes"><h2 id="notes" class="header"><a href="#webassembly - component model-notes">notes</a></h2></div>
+
+<p>
+but:
+"define a portable, load- and run-time-efficient binary format that enables
+portable, cross-language composition"
+</p>
+
+<p>
+exemple avec une runtime en JS
+</p>
+
+<p>
+pas de serialization fixe
+</p>
+
+<p>
+autant de branches (imbrications de components) qu'on veut,
+les sections core sont les feuilles
+</p>
+
+<p>
+<span id="webassembly - component model-notes-pas de cycle entre les components"></span><strong id="pas de cycle entre les components">pas de cycle entre les components</strong>: references seulement aux definitions
+precedentes
+</p>
+
+<p>
+les modules sont immutables (stateless), mais les instances sont mutables
+(stateful)
+</p>
+
+<p>
+pas de code qui tourne sans instance
+</p>
+
+<p>
+arguments nommes pour satisfaire les imports
+</p>
+
+<p>
+possibilite de transferer une instance a une autre instance:
+</p>
+<pre>
+(component
+  (module $A
+    (func (export "one") (result i32) (i32.const 1))
+  )
+  (module $B
+    (func (import "a" "one") (result i32))
+  )
+  (instance $a (instantiate (module $A)))
+  (instance $b (instantiate (module $B) (with "a" (instance $a))))
+)
+</pre>
+
+<p>
+alias pour creer de nouveaux idx
+</p>
+
+<p>
+deux types de cibles pour un alias
+</p>
+<ul>
+<li>
+<code>export</code> pour designer une definition locale
+
+<li>
+<code>outer</code> pour designer un component parent, <a href="https://en.wikipedia.org/wiki/De_Bruijn_index">index de bruijn</a>
+    (0 pour le component courant).
+    produit une copie. stateless seulement (components / modules / types,
+    peut changer a l'avenir).
+
+</ul>
+
+<p>
+en texte, possibilite d'enchainer avec <code>(kind &lt;instanceidx&gt; &lt;name&gt;+)</code>.
+par exemple <code>(func $j "g" "h")</code> est equivalent a 
+<code>(alias export \(j "g" (instance \)g_alias)) (alias export \(g_alias "h" (func \)h_alias))</code>
+</p>
+
+<p>
+utiliser un id vers une definition parente generera un alias
+</p>
+
+<div id="webassembly - component model-grammaires"><h2 id="grammaires" class="header"><a href="#webassembly - component model-grammaires">grammaires</a></h2></div>
+
+<div id="webassembly - component model-grammaires-Definitions"><h3 id="Definitions" class="header"><a href="#webassembly - component model-grammaires-Definitions">Definitions</a></h3></div>
+<pre>
+component  ::= (component &lt;id&gt;? &lt;definition&gt;*)
+definition ::= &lt;core:module&gt;
+             | &lt;component&gt;
+             | &lt;instance&gt;
+             | &lt;alias&gt;
+             | &lt;type&gt;
+             | &lt;func&gt;
+             | &lt;start&gt;
+             | &lt;import&gt;
+             | &lt;export&gt;
+</pre>
+
+<div id="webassembly - component model-grammaires-Instances"><h3 id="Instances" class="header"><a href="#webassembly - component model-grammaires-Instances">Instances</a></h3></div>
+<pre>
+instance     ::= (instance &lt;id&gt;? &lt;instanceexpr&gt;)
+instanceexpr ::= (instantiate (module &lt;moduleidx&gt;) (with &lt;name&gt; &lt;modulearg&gt;)*)
+               | (instantiate (component &lt;componentidx&gt;) (with &lt;name&gt; &lt;componentarg&gt;)*)
+               | &lt;export&gt;*
+               | core &lt;core:export&gt;*
+modulearg    ::= (instance &lt;instanceidx&gt;)
+               | (instance &lt;core:export&gt;*)
+componentarg ::= (module &lt;moduleidx&gt;)
+               | (component &lt;componentidx&gt;)
+               | (instance &lt;instanceidx&gt;)
+               | (func &lt;funcidx&gt;)
+               | (value &lt;valueidx&gt;)
+               | (type &lt;typeidx&gt;)
+               | (instance &lt;export&gt;*)
+export       ::= (export &lt;name&gt; &lt;componentarg&gt;)
+</pre>
+
+<div id="webassembly - component model-grammaires-Alias"><h3 id="Alias" class="header"><a href="#webassembly - component model-grammaires-Alias">Alias</a></h3></div>
+<pre>
+alias       ::= (alias &lt;aliastarget&gt; &lt;aliaskind&gt;)
+aliastarget ::= export &lt;instanceidx&gt; &lt;name&gt;
+              | outer &lt;outeridx&gt; &lt;idx&gt;
+aliaskind   ::= (module &lt;id&gt;?)
+              | (component &lt;id&gt;?)
+              | (instance &lt;id&gt;?)
+              | (func &lt;id&gt;?)
+              | (value &lt;id&gt;?)
+              | (type &lt;id&gt;?)
+              | (table &lt;id&gt;?)
+              | (memory &lt;id&gt;?)
+              | (global &lt;id&gt;?)
+              | ... other Post-MVP Core definition kinds
+</pre>
+
+<div id="webassembly - component model-grammaires-Types"><h3 id="Types" class="header"><a href="#webassembly - component model-grammaires-Types">Types</a></h3></div>
+<pre>
+type              ::= (type &lt;id&gt;? &lt;typeexpr&gt;)
+typeexpr          ::= &lt;deftype&gt;
+                    | &lt;intertype&gt;
+deftype           ::= &lt;moduletype&gt;
+                    | &lt;componenttype&gt;
+                    | &lt;instancetype&gt;
+                    | &lt;functype&gt;
+                    | &lt;valuetype&gt;
+moduletype        ::= (module &lt;id&gt;? &lt;moduletype-def&gt;*)
+moduletype-def    ::= &lt;core:deftype&gt;
+                    | &lt;core:import&gt;
+                    | (export &lt;name&gt; &lt;core:importdesc&gt;)
+core:deftype      ::= &lt;core:functype&gt;
+                    | ... Post-MVP additions
+componenttype     ::= (component &lt;id&gt;? &lt;componenttype-def&gt;*)
+componenttype-def ::= &lt;import&gt;
+                    | &lt;instancetype-def&gt;
+import            ::= (import &lt;name&gt; &lt;deftype&gt;)
+instancetype      ::= (instance &lt;id&gt;? &lt;instancetype-def&gt;*)
+instancetype-def  ::= &lt;type&gt;
+                    | &lt;alias&gt;
+                    | (export &lt;name&gt; &lt;deftype&gt;)
+functype          ::= (func &lt;id&gt;? (param &lt;name&gt;? &lt;intertype&gt;)* (result &lt;intertype&gt;))
+valuetype         ::= (value &lt;id&gt;? &lt;intertype&gt;)
+intertype         ::= unit | bool
+                    | s8 | u8 | s16 | u16 | s32 | u32 | s64 | u64
+                    | float32 | float64
+                    | char | string
+                    | (record (field &lt;name&gt; &lt;intertype&gt;)*)
+                    | (variant (case &lt;name&gt; &lt;intertype&gt; (defaults-to &lt;name&gt;)?)*)
+                    | (list &lt;intertype&gt;)
+                    | (tuple &lt;intertype&gt;*)
+                    | (flags &lt;name&gt;*)
+                    | (enum &lt;name&gt;*)
+                    | (union &lt;intertype&gt;*)
+                    | (option &lt;intertype&gt;)
+                    | (expected &lt;intertype&gt; &lt;intertype&gt;)
+</pre>
+
+</body>
+</html>

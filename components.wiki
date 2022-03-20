@@ -1,3 +1,6 @@
 = webassembly components =
 
   * [[scoping and layering]]
+  * [[component model]]
+  * [[module linking]]
+  * [[interface types]]

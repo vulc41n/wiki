@@ -1,0 +1,2 @@
+
+[[https://bytecodealliance.github.io/wit-bindgen/|tester le nouveau format wit en ligne]]

@@ -1,0 +1,185 @@
+= webassembly - component model =
+
+== ressources ==
+
+[[https://github.com/WebAssembly/component-model/blob/main/design/mvp/Explainer.md|explainer]]
+
+[[https://github.com/WebAssembly/component-model/blob/main/design/mvp/Binary.md|format binaire]]
+
+[[https://github.com/WebAssembly/component-model/blob/main/design/mvp/FutureFeatures.md|fonctionnalites futures]]
+
+[[https://radu-matei.com/blog/intro-wasm-components/|article de radu]]
+
+== exemple ==
+{{{
+(component
+  (module $A
+    (func (export "one") (result i32) (i32.const 1))
+    (func (export "two") (result i32) (i32.const 2))
+    (func (export "three") (result i32) (i32.const 3))
+  )
+  (module $B
+    (func (import "a" "one") (result i32))
+  )
+  (instance $a (instantiate (module $A)))
+  (instance $b1 (instantiate (module $B)
+    (with "a" (instance $a))            ;; no renaming
+  ))
+  (alias export $a "two" (func $a_two))
+  (instance $b2 (instantiate (module $B)
+    (with "a" (instance
+      (export "one" (func $a_two))      ;; renaming, using explicit alias
+    ))
+  ))
+  (instance $b3 (instantiate (module $B)
+    (with "a" (instance
+      (export "one" (func $a "three"))  ;; renaming, using inline alias sugar
+    ))
+  ))
+)
+}}}
+
+== notes ==
+
+but:
+"define a portable, load- and run-time-efficient binary format that enables
+portable, cross-language composition"
+
+exemple avec une runtime en JS
+
+pas de serialization fixe
+
+autant de branches (imbrications de components) qu'on veut,
+les sections core sont les feuilles
+
+*pas de cycle entre les components*: references seulement aux definitions
+precedentes
+
+les modules sont immutables (stateless), mais les instances sont mutables
+(stateful)
+
+pas de code qui tourne sans instance
+
+arguments nommes pour satisfaire les imports
+
+possibilite de transferer une instance a une autre instance:
+{{{
+(component
+  (module $A
+    (func (export "one") (result i32) (i32.const 1))
+  )
+  (module $B
+    (func (import "a" "one") (result i32))
+  )
+  (instance $a (instantiate (module $A)))
+  (instance $b (instantiate (module $B) (with "a" (instance $a))))
+)
+}}}
+
+alias pour creer de nouveaux idx
+
+deux types de cibles pour un alias
+  * `export` pour designer une definition locale
+  * `outer` pour designer un component parent, [[https://en.wikipedia.org/wiki/De_Bruijn_index|index de bruijn]]
+    (0 pour le component courant).
+    produit une copie. stateless seulement (components / modules / types,
+    peut changer a l'avenir).
+
+en texte, possibilite d'enchainer avec `(kind <instanceidx> <name>+)`.
+par exemple `(func $j "g" "h")` est equivalent a 
+`(alias export $j "g" (instance $g_alias)) (alias export $g_alias "h" (func $h_alias))`
+
+utiliser un id vers une definition parente generera un alias
+
+== grammaires ==
+
+=== Definitions ===
+{{{
+component  ::= (component <id>? <definition>*)
+definition ::= <core:module>
+             | <component>
+             | <instance>
+             | <alias>
+             | <type>
+             | <func>
+             | <start>
+             | <import>
+             | <export>
+}}}
+
+=== Instances ===
+{{{
+instance     ::= (instance <id>? <instanceexpr>)
+instanceexpr ::= (instantiate (module <moduleidx>) (with <name> <modulearg>)*)
+               | (instantiate (component <componentidx>) (with <name> <componentarg>)*)
+               | <export>*
+               | core <core:export>*
+modulearg    ::= (instance <instanceidx>)
+               | (instance <core:export>*)
+componentarg ::= (module <moduleidx>)
+               | (component <componentidx>)
+               | (instance <instanceidx>)
+               | (func <funcidx>)
+               | (value <valueidx>)
+               | (type <typeidx>)
+               | (instance <export>*)
+export       ::= (export <name> <componentarg>)
+}}}
+
+=== Alias ===
+{{{
+alias       ::= (alias <aliastarget> <aliaskind>)
+aliastarget ::= export <instanceidx> <name>
+              | outer <outeridx> <idx>
+aliaskind   ::= (module <id>?)
+              | (component <id>?)
+              | (instance <id>?)
+              | (func <id>?)
+              | (value <id>?)
+              | (type <id>?)
+              | (table <id>?)
+              | (memory <id>?)
+              | (global <id>?)
+              | ... other Post-MVP Core definition kinds
+}}}
+
+=== Types ===
+{{{
+type              ::= (type <id>? <typeexpr>)
+typeexpr          ::= <deftype>
+                    | <intertype>
+deftype           ::= <moduletype>
+                    | <componenttype>
+                    | <instancetype>
+                    | <functype>
+                    | <valuetype>
+moduletype        ::= (module <id>? <moduletype-def>*)
+moduletype-def    ::= <core:deftype>
+                    | <core:import>
+                    | (export <name> <core:importdesc>)
+core:deftype      ::= <core:functype>
+                    | ... Post-MVP additions
+componenttype     ::= (component <id>? <componenttype-def>*)
+componenttype-def ::= <import>
+                    | <instancetype-def>
+import            ::= (import <name> <deftype>)
+instancetype      ::= (instance <id>? <instancetype-def>*)
+instancetype-def  ::= <type>
+                    | <alias>
+                    | (export <name> <deftype>)
+functype          ::= (func <id>? (param <name>? <intertype>)* (result <intertype>))
+valuetype         ::= (value <id>? <intertype>)
+intertype         ::= unit | bool
+                    | s8 | u8 | s16 | u16 | s32 | u32 | s64 | u64
+                    | float32 | float64
+                    | char | string
+                    | (record (field <name> <intertype>)*)
+                    | (variant (case <name> <intertype> (defaults-to <name>)?)*)
+                    | (list <intertype>)
+                    | (tuple <intertype>*)
+                    | (flags <name>*)
+                    | (enum <name>*)
+                    | (union <intertype>*)
+                    | (option <intertype>)
+                    | (expected <intertype> <intertype>)
+}}}

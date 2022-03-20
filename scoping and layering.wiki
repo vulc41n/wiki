@@ -65,7 +65,7 @@ besoin de merge module linking & interface types parce que les deux sont au
 niveau du linker
 component model
 
-adaptateurs canoniques
+[[https://github.com/WebAssembly/interface-types/pull/140|adaptateurs canoniques]]
 {{{wat
 (adapter_func $adapt_log (param i32 i32)
   canonical import $log
