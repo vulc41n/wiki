@@ -1,0 +1,43 @@
+== vulcain investigation - communication entre modules wasm ==
+
+  Ok, je crois avoir compris la chonrologie, bienvenue dans
+  vulcain investigation.
+
+  Tout est parti d'une presentation faite pendant une CG nommee 
+  [[https://docs.google.com/presentation/d/1PSC3Q5oFsJEaYyV5lNJvVgh-SNxhySWUqZ6puyojMi8|scoping and layering]]
+
+  A partir de la, 2 propositions ont ete crees, celles qui nous interessent :
+    * [[https://github.com/WebAssembly/module-linking|module linking]], qui vise a
+      exporter des fonctions entre modules wasm sans passer par un code qui fait
+      la glue en JS ou en utilisant des embedders WASI
+    * [[https://github.com/WebAssembly/interface-types|interface types]], qui vise
+      a unifier les types de haut niveau (strings, lists, enums etc)
+
+  C'est exactement ce qu'on cherche parce qu'on veut que notre langage soit
+  compatible avec les types des autres langages et que ca tourne dans tous les
+  environnements. Ca nous permettra aussi d'accepter des wasm arbitraires, et du
+  coup les utilisateurs pourront integrer des fonctionnements dans n'importe quel
+  langage se compilant en wasm dans les pipelines.
+
+  1. La proposition interface types a fait naitre un langage qui s'appelle WIT.
+     C'est comme le WAT (le format texte du wasm), mais en ajoutant ces types.
+  2. Depuis, la WASI s'est construite. Elle a utilise dans son ABI les types
+     proposes dans interface types, et en a ajoute, creeant ainsi le format WITX.
+     Il n'existe aujourd'hui aucune documentation sur WIT ou WITX, juste quelques
+     fichiers eparpilles utilisants des formats radicalement differents les uns
+     des autres, aucun n'est reconnu par wasmtime.
+  3. Une doc de WITX a un jour existee, mais le format WITX est aujourd'hui
+     abandonne par la WASI, au profit du nouveau format de WIT, qui semble etre 
+     [[https://github.com/bytecodealliance/wit-bindgen/blob/32e63116d469d8046727fae3c1333a7d35d0c5d3/tests/codegen/wasi-next/wasi_next.wit|celui-ci]]
+     (encore une fois, ce sont des fichiers eparpilles, pas la peine de chercher
+     une doc, j'ai bien sur essaye).
+  4. Les deux propositions font aujourd'hui l'objet d'un merge, en plus du
+     formalisme du nouveau format texte:
+     [[https://github.com/WebAssembly/component-model|component model]] et il 
+     semblerait que le format WIT evolue pour l'instant dans le repo
+     [[https://github.com/bytecodealliance/wit-bindgen|wit-bindgen]].
+
+  Le resume le plus efficace que j'ai trouve sur l'etat de la situation se trouve
+  sur [[https://radu-matei.com/blog/intro-wasm-components/|le blog de radu]], le
+  CTO de [[https://www.fermyon.com/|fermyon]], qui sont a l'origine de
+  wasm.builders

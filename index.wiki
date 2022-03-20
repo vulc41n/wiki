@@ -1,0 +1,2 @@
+= les notes de vulcain =
+  * [[diary/diary|Journal]]
