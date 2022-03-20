@@ -1,0 +1,6 @@
+= Debug =
+
+  * [[https://github.com/WebAssembly/extended-name-section/blob/main/proposals/extended-name-section/Overview.md|dans la section name]]
+  * [[https://blog.scottlogic.com/2021/06/21/state-of-wasm.html|"WebAssembly most needs to be a success"]]
+  * [[https://github.com/WebAssembly/debugging|debugging subgroup]]
+

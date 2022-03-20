@@ -1,0 +1,79 @@
+= webassembly - scoping and layering =
+
+== ressources ==
+  [[https://docs.google.com/presentation/d/1u8uP1WsjULNAFoDFqGCbjaxXx5k08Jf8uFE1H9nDbaU/|presentation module linking]]
+  
+  [[https://docs.google.com/presentation/d/1uq3uFkmXHRjP5V56wKlmxMH_gveYcigc8DIXYyGpWE4/|presentation doublons d'imports]]
+  conclusion: pas de suppression des doublons
+  
+  [[https://docs.google.com/presentation/d/1PSC3Q5oFsJEaYyV5lNJvVgh-SNxhySWUqZ6puyojMi8/|presentation scoping and layering]]
+
+  [[https://github.com/bytecodealliance/wasmtime/tree/main/tests/misc_testsuite/module-linking|implementation wasmtime]]
+
+repos:
+[[https://github.com/WebAssembly/component-model|component model]] ->
+[[https://github.com/WebAssembly/module-linking|module linking]] ->
+[[https://github.com/WebAssembly/interface-types|interfaces type]]
+
+== notes ==
+
+but: host independent
+pour l'instant les specs collent seulement au JS et au C
+
+sous modules et instances
+un module peut etre instantie plusieurs fois
+
+sous modules
+  * n'a pas acces au state du parent
+
+instance:
+  * stateful
+  * capacites sur memories, tables, globals, functions...
+  * requetes de capacite
+
+proposition initiale :
+{{{wat
+(module $APP
+  (import “libc” (module $LIBC
+    (export “malloc” (func (param i32) (result i32)))
+  ))
+  (instance $libc (instantiate $LIBC))
+  (module $CODE
+    (import “libc” (instance $libc
+      (export “malloc” (func (param i32) (result i32)))
+    ))
+    (func (export “run”) (param i32 i32) …)
+  )
+  (instance $code (instantiate $CODE (import “libc” (instance $libc))))
+  (func (export “run”) (param i32 i32)
+    (call (func $code “run”) …)
+  )
+)
+}}}
+
+`(alias $m_actions (func $module $actions))`
+
+modules "adapatateurs" pour les nouvelles features
+  * sous modules core
+  * sous modules adaptateurs
+  * instances
+  * alias
+  * pas d'autres sections des modules core
+role uniquement de linker
+
+besoin de merge module linking & interface types parce que les deux sont au
+niveau du linker
+component model
+
+adaptateurs canoniques
+{{{wat
+(adapter_func $adapt_log (param i32 i32)
+  canonical import $log
+)
+}}}
+
+on dirait que `(param string est autorise)`
+
+developer preview
+  * necessite [[https://docs.google.com/presentation/d/1ikwS2Ps-KLXFofuS5VAs6Bn14q4LBEaxMjPfLj61UZE/|handles]]
+  * dev sur wasmtime

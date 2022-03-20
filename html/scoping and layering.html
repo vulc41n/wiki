@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>scoping and layering</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<div id="webassembly - scoping and layering"><h1 id="webassembly - scoping and layering" class="header"><a href="#webassembly - scoping and layering">webassembly - scoping and layering</a></h1></div>
+
+<div id="webassembly - scoping and layering-ressources"><h2 id="ressources" class="header"><a href="#webassembly - scoping and layering-ressources">ressources</a></h2></div>
+<p>
+  <a href="https://docs.google.com/presentation/d/1u8uP1WsjULNAFoDFqGCbjaxXx5k08Jf8uFE1H9nDbaU/">presentation module linking</a>
+</p>
+  
+<p>
+  <a href="https://docs.google.com/presentation/d/1uq3uFkmXHRjP5V56wKlmxMH_gveYcigc8DIXYyGpWE4/">presentation doublons d'imports</a>
+  conclusion: pas de suppression des doublons
+</p>
+  
+<p>
+  <a href="https://docs.google.com/presentation/d/1PSC3Q5oFsJEaYyV5lNJvVgh-SNxhySWUqZ6puyojMi8/">presentation scoping and layering</a>
+</p>
+
+<p>
+  <a href="https://github.com/bytecodealliance/wasmtime/tree/main/tests/misc_testsuite/module-linking">implementation wasmtime</a>
+</p>
+
+<p>
+repos:
+<a href="https://github.com/WebAssembly/component-model">component model</a> -&gt;
+<a href="https://github.com/WebAssembly/module-linking">module linking</a> -&gt;
+<a href="https://github.com/WebAssembly/interface-types">interfaces type</a>
+</p>
+
+<div id="webassembly - scoping and layering-notes"><h2 id="notes" class="header"><a href="#webassembly - scoping and layering-notes">notes</a></h2></div>
+
+<p>
+but: host independent
+pour l'instant les specs collent seulement au JS et au C
+</p>
+
+<p>
+sous modules et instances
+un module peut etre instantie plusieurs fois
+</p>
+
+<p>
+sous modules
+</p>
+<ul>
+<li>
+n'a pas acces au state du parent
+
+</ul>
+
+<p>
+instance:
+</p>
+<ul>
+<li>
+stateful
+
+<li>
+capacites sur memories, tables, globals, functions...
+
+<li>
+requetes de capacite
+
+</ul>
+
+<p>
+proposition initiale :
+</p>
+<pre wat>
+(module $APP
+  (import “libc” (module $LIBC
+    (export “malloc” (func (param i32) (result i32)))
+  ))
+  (instance $libc (instantiate $LIBC))
+  (module $CODE
+    (import “libc” (instance $libc
+      (export “malloc” (func (param i32) (result i32)))
+    ))
+    (func (export “run”) (param i32 i32) …)
+  )
+  (instance $code (instantiate $CODE (import “libc” (instance $libc))))
+  (func (export “run”) (param i32 i32)
+    (call (func $code “run”) …)
+  )
+)
+</pre>
+
+<p>
+<code>(alias \(m_actions (func \)module $actions))</code>
+</p>
+
+<p>
+modules "adapatateurs" pour les nouvelles features
+</p>
+<ul>
+<li>
+sous modules core
+
+<li>
+sous modules adaptateurs
+
+<li>
+instances
+
+<li>
+alias
+
+<li>
+pas d'autres sections des modules core
+
+</ul>
+<p>
+role uniquement de linker
+</p>
+
+<p>
+besoin de merge module linking &amp; interface types parce que les deux sont au
+niveau du linker
+component model
+</p>
+
+<p>
+adaptateurs canoniques
+</p>
+<pre wat>
+(adapter_func $adapt_log (param i32 i32)
+  canonical import $log
+)
+</pre>
+
+<p>
+on dirait que <code>(param string est autorise)</code>
+</p>
+
+<p>
+developer preview
+</p>
+<ul>
+<li>
+necessite <a href="https://docs.google.com/presentation/d/1ikwS2Ps-KLXFofuS5VAs6Bn14q4LBEaxMjPfLj61UZE/">handles</a>
+
+<li>
+dev sur wasmtime
+
+</ul>
+
+</body>
+</html>

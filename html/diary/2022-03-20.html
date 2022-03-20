@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="../style.css">
+<title>2022-03-20</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<div id="vulcain investigation - communication entre modules wasm"><h2 id="vulcain investigation - communication entre modules wasm" class="header"><a href="#vulcain investigation - communication entre modules wasm">vulcain investigation - communication entre modules wasm</a></h2></div>
+
+<p>
+  Ok, je crois avoir compris la chonrologie, bienvenue dans
+  vulcain investigation.
+</p>
+
+<p>
+  Tout est parti d'une presentation faite pendant une CG nommee 
+  <a href="https://docs.google.com/presentation/d/1PSC3Q5oFsJEaYyV5lNJvVgh-SNxhySWUqZ6puyojMi8">scoping and layering</a>
+</p>
+
+<p>
+  A partir de la, 2 propositions ont ete crees, celles qui nous interessent :
+</p>
+<ul>
+<li>
+<a href="https://github.com/WebAssembly/module-linking">module linking</a>, qui vise a
+      exporter des fonctions entre modules wasm sans passer par un code qui fait
+      la glue en JS ou en utilisant des embedders WASI
+
+<li>
+<a href="https://github.com/WebAssembly/interface-types">interface types</a>, qui vise
+      a unifier les types de haut niveau (strings, lists, enums etc)
+
+</ul>
+
+<p>
+  C'est exactement ce qu'on cherche parce qu'on veut que notre langage soit
+  compatible avec les types des autres langages et que ca tourne dans tous les
+  environnements. Ca nous permettra aussi d'accepter des wasm arbitraires, et du
+  coup les utilisateurs pourront integrer des fonctionnements dans n'importe quel
+  langage se compilant en wasm dans les pipelines.
+</p>
+
+<ol>
+<li>
+La proposition interface types a fait naitre un langage qui s'appelle WIT.
+     C'est comme le WAT (le format texte du wasm), mais en ajoutant ces types.
+
+<li>
+Depuis, la WASI s'est construite. Elle a utilise dans son ABI les types
+     proposes dans interface types, et en a ajoute, creeant ainsi le format WITX.
+     Il n'existe aujourd'hui aucune documentation sur WIT ou WITX, juste quelques
+     fichiers eparpilles utilisants des formats radicalement differents les uns
+     des autres, aucun n'est reconnu par wasmtime.
+
+<li>
+Une doc de WITX a un jour existee, mais le format WITX est aujourd'hui
+     abandonne par la WASI, au profit du nouveau format de WIT, qui semble etre 
+     <a href="https://github.com/bytecodealliance/wit-bindgen/blob/32e63116d469d8046727fae3c1333a7d35d0c5d3/tests/codegen/wasi-next/wasi_next.wit">celui-ci</a>
+     (encore une fois, ce sont des fichiers eparpilles, pas la peine de chercher
+     une doc, j'ai bien sur essaye).
+
+<li>
+Les deux propositions font aujourd'hui l'objet d'un merge, en plus du
+     formalisme du nouveau format texte:
+     <a href="https://github.com/WebAssembly/component-model">component model</a> et il 
+     semblerait que le format WIT evolue pour l'instant dans le repo
+     <a href="https://github.com/bytecodealliance/wit-bindgen">wit-bindgen</a>.
+
+</ol>
+
+<p>
+  Le resume le plus efficace que j'ai trouve sur l'etat de la situation se trouve
+  sur <a href="https://radu-matei.com/blog/intro-wasm-components/">le blog de radu</a>, le
+  CTO de <a href="https://www.fermyon.com/">fermyon</a>, qui sont a l'origine de
+  wasm.builders
+</p>
+
+</body>
+</html>

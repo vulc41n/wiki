@@ -1,2 +1,3 @@
 = les notes de vulcain =
+  * [[WASM]]
   * [[diary/diary|Journal]]
